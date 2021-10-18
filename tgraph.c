@@ -48,39 +48,39 @@ bool samepath(path* b, path* a) {
 /* This function is kind of a mess */
 void reducepath(path* a, path* b) {
     u64 agreements = 0;
-    u64 odiffa = UINT64_MAX;
-    u64 odiffb = UINT64_MAX;
-    u64 vdiffa = UINT64_MAX;
-    u64 vdiffb = UINT64_MAX;
-    u64 aind = 0;
-    u64 bind = 0;
+    u64 missingA = UINT64_MAX;
+    u64 missingB = UINT64_MAX;
+    u64 valDiffA = UINT64_MAX;
+    u64 valDiffB = UINT64_MAX;
+    u64 indA = 0;
+    u64 indB = 0;
 
     // Search through both arrays
     // All arrays are sorted on input to a tgraph, so we can use that
     // This loop counts the number of divergences between 2 paths,
     // both in terms of different variables and different values
-    while (aind < a->len && bind < b->len) {
-        if (a->vars[aind] < b->vars[bind]) {
+    while (indA < a->len && indB < b->len) {
+        if (a->vars[indA] < b->vars[indB]) {
             // Record variable in a missing in b
-            odiffa = aind;
-            aind++;
-        } else if (a->vars[aind] > b->vars[bind]) {
+            missingA = indA;
+            indA++;
+        } else if (a->vars[indA] > b->vars[indB]) {
             // Record variable in b missing in a
-            odiffb = bind;
-            bind++;
+            missingB = indB;
+            indB++;
         } else {
-            if (a->vals[aind] == b->vals[bind]) {
+            if (a->vals[indA] == b->vals[indB]) {
                 // Record variable & value agreement
                 agreements++;
             } else {
-                if (vdiffb == UINT64_MAX) {
+                if (valDiffB == UINT64_MAX) {
                     // Record first value disagreement
-                    vdiffa = aind;
-                    vdiffb = bind;
+                    valDiffA = indA;
+                    valDiffB = indB;
                 }
             }
-            aind++;
-            bind++;
+            indA++;
+            indB++;
         }
     }
 
@@ -89,68 +89,68 @@ void reducepath(path* a, path* b) {
     // length of the smallest path - 1
     u64 expectedAgreements = min(a->len, b->len);
     if (agreements == expectedAgreements - 1) {
-        // if vdiffa is still equal to UINT64_MAX
+        // if valDiffA is still equal to UINT64_MAX
         // the loop did not find a disagreeing value
-        if (vdiffa == UINT64_MAX) {
+        if (valDiffA == UINT64_MAX) {
             // If the lengths of the two paths are equal,
             // we can remove the variable in question from both,
             // or whichever one has the variable
             if (a->len == b->len) {
-                // If odiffa is not equal to UINT64_MAX
+                // If missingA is not equal to UINT64_MAX
                 // b is missing a variable a has
-                if (odiffa != UINT64_MAX) {
+                if (missingA != UINT64_MAX) {
                     // Edge case for removal with a path of length 1
                     if (a->len == 1) {
                         a->len--;
                         b->len--;
                     } else {
                         // Edge case for removing last item of path
-                        if (odiffa == a->len - 1) {
+                        if (missingA == a->len - 1) {
                             a->len--;
                         } else {
                             // Actually removing an item for somewhere in the middle of a path
-                            memmove(a->vars + odiffa, a->vars + odiffa + 1, sizeof(u64) * (a->len - (odiffa + 1)));
-                            memmove(a->vals + odiffa, a->vals + odiffa + 1, sizeof(bool) * (a->len - (odiffa + 1)));
+                            memmove(a->vars + missingA, a->vars + missingA + 1, sizeof(u64) * (a->len - (missingA + 1)));
+                            memmove(a->vals + missingA, a->vals + missingA + 1, sizeof(bool) * (a->len - (missingA + 1)));
                             a->len--;
                         }
                     }
                 }
-                // Same code as for odiffa, but for if a is missing a variable b has
+                // Same code as for missingA, but for if a is missing a variable b has
                 // The case with diverging values is already handled by the earlier
-                // (vdiffa == UINT64_MAX) if statement, so we don't need to handle
+                // (valDiffA == UINT64_MAX) if statement, so we don't need to handle
                 // it here
-                if (odiffb != UINT64_MAX) {
-                    if (odiffb == b->len - 1) {
+                if (missingB != UINT64_MAX) {
+                    if (missingB == b->len - 1) {
                         b->len--;
                     } else {
-                        memmove(b->vars + odiffb, b->vars + odiffb + 1, sizeof(u64) * (b->len - (odiffb + 1)));
-                        memmove(b->vals + odiffb, b->vals + odiffb + 1, sizeof(bool) * (b->len - (odiffb + 1)));
+                        memmove(b->vars + missingB, b->vars + missingB + 1, sizeof(u64) * (b->len - (missingB + 1)));
+                        memmove(b->vals + missingB, b->vals + missingB + 1, sizeof(bool) * (b->len - (missingB + 1)));
                         b->len--;
                     }
                 }
             } else if (a->len < b->len) {
                 // If a is shorter than b, we can only remove
-                // variables from b, so if odiffb is UINT64_MAX
+                // variables from b, so if missingB is UINT64_MAX
                 // the variable to remove is in path a
-                if (odiffb != UINT64_MAX) {
-                    if (odiffb == b->len - 1) {
+                if (missingB != UINT64_MAX) {
+                    if (missingB == b->len - 1) {
                         b->len--;
                     } else {
-                        memmove(b->vars + odiffb, b->vars + odiffb + 1, sizeof(u64) * (b->len - (odiffb + 1)));
-                        memmove(b->vals + odiffb, b->vals + odiffb + 1, sizeof(bool) * (b->len - (odiffb + 1)));
+                        memmove(b->vars + missingB, b->vars + missingB + 1, sizeof(u64) * (b->len - (missingB + 1)));
+                        memmove(b->vals + missingB, b->vals + missingB + 1, sizeof(bool) * (b->len - (missingB + 1)));
                         b->len--;
                     }
                 }
             } else if (a->len > b->len) {
                 // If b is shorter than a, we can only remove
-                // variables from a, so if odiffa is UINT64_MAX
+                // variables from a, so if missingA is UINT64_MAX
                 // the variable to remove is in path b
-                if (odiffa != UINT64_MAX) {
-                    if (odiffa == a->len - 1) {
+                if (missingA != UINT64_MAX) {
+                    if (missingA == a->len - 1) {
                         a->len--;
                     } else {
-                        memmove(a->vars + odiffa, a->vars + odiffa + 1, sizeof(u64) * (a->len - (odiffa + 1)));
-                        memmove(a->vals + odiffa, a->vals + odiffa + 1, sizeof(bool) * (a->len - (odiffa + 1)));
+                        memmove(a->vars + missingA, a->vars + missingA + 1, sizeof(u64) * (a->len - (missingA + 1)));
+                        memmove(a->vals + missingA, a->vals + missingA + 1, sizeof(bool) * (a->len - (missingA + 1)));
                         a->len--;
                     }
                 }
@@ -170,22 +170,22 @@ void reducepath(path* a, path* b) {
                     b->len--;
                     return;
                 } else {
-                    // If vdiffa is the last element, we can remove it
+                    // If valDiffA is the last element, we can remove it
                     // by decreasing the number of elements
-                    if (vdiffa == a->len - 1) {
+                    if (valDiffA == a->len - 1) {
                         a->len--;
                     } else {
                         // Otherwise we overwrite it
-                        memmove(a->vars + vdiffa, a->vars + vdiffa + 1, sizeof(u64) * (a->len - (vdiffa + 1)));
-                        memmove(a->vals + vdiffa, a->vals + vdiffa + 1, sizeof(bool) * (a->len - (vdiffa + 1)));
+                        memmove(a->vars + valDiffA, a->vars + valDiffA + 1, sizeof(u64) * (a->len - (valDiffA + 1)));
+                        memmove(a->vals + valDiffA, a->vals + valDiffA + 1, sizeof(bool) * (a->len - (valDiffA + 1)));
                         a->len--;
                     }
                     // Same as above
-                    if (vdiffb == b->len - 1) {
+                    if (valDiffB == b->len - 1) {
                         b->len--;
                     } else {
-                        memmove(b->vars + vdiffb, b->vars + vdiffb + 1, sizeof(u64) * (b->len - (vdiffb + 1)));
-                        memmove(b->vals + vdiffb, b->vals + vdiffb + 1, sizeof(bool) * (b->len - (vdiffb + 1)));
+                        memmove(b->vars + valDiffB, b->vars + valDiffB + 1, sizeof(u64) * (b->len - (valDiffB + 1)));
+                        memmove(b->vals + valDiffB, b->vals + valDiffB + 1, sizeof(bool) * (b->len - (valDiffB + 1)));
                         b->len--;
                     }
                     return;
@@ -193,11 +193,11 @@ void reducepath(path* a, path* b) {
             } else if (a->len < b->len) {
                 // If a is shorter than b, we can only remove the variable in question
                 // from b
-                if (vdiffb == b->len - 1) {
+                if (valDiffB == b->len - 1) {
                     b->len--;
                 } else {
-                    memmove(b->vars + vdiffb, b->vars + vdiffb + 1, sizeof(u64) * (b->len - (vdiffb + 1)));
-                    memmove(b->vals + vdiffb, b->vals + vdiffb + 1, sizeof(bool) * (b->len - (vdiffb + 1)));
+                    memmove(b->vars + valDiffB, b->vars + valDiffB + 1, sizeof(u64) * (b->len - (valDiffB + 1)));
+                    memmove(b->vals + valDiffB, b->vals + valDiffB + 1, sizeof(bool) * (b->len - (valDiffB + 1)));
                     b->len--;
                 }
             } else {
@@ -208,11 +208,11 @@ void reducepath(path* a, path* b) {
                     a->len--;
                     return;
                 }
-                if (vdiffa == a->len - 1) {
+                if (valDiffA == a->len - 1) {
                     a->len--;
                 } else {
-                    memmove(a->vars + vdiffa, a->vars + vdiffa + 1, sizeof(u64) * (a->len - (vdiffa + 1)));
-                    memmove(a->vals + vdiffa, a->vals + vdiffa + 1, sizeof(bool) * (a->len - (vdiffa + 1)));
+                    memmove(a->vars + valDiffA, a->vars + valDiffA + 1, sizeof(u64) * (a->len - (valDiffA + 1)));
+                    memmove(a->vals + valDiffA, a->vals + valDiffA + 1, sizeof(bool) * (a->len - (valDiffA + 1)));
                     a->len--;
                 }
             }
