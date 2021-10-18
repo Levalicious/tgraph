@@ -10,8 +10,9 @@ path* initpath(u64 vcnt) {
 
    o->len = 0;
    o->cap = vcnt;
-   o->vars = malloc(sizeof(u64) * o->cap);;
-   o->vals = malloc(sizeof(_Bool) * o->cap);;
+   o->vars = malloc(sizeof(u64) * o->cap);
+   o->vals = malloc(sizeof(_Bool) * o->cap);
+   for (u64 i = 0; i < vcnt; ++i) o->vals[i] = i;
 
    return o;
 }
